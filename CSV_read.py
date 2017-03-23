@@ -13,9 +13,7 @@ def read_config(filepath):
     """
 
     # preallocate stuff
-    categories = []
     keywords = []
-    order = []
 
     # open config file and read it
     with open(filepath, 'r+') as config_file:
@@ -57,21 +55,13 @@ def read_config(filepath):
                 # remove the whitespace before and after any text
                 row[x] = row[x].strip()
             # if the item in the row is all uppercase but not the END line
-            if row[0].isupper() and row[0] != 'END':
+            if row[0].isupper() and row[0]:
                 # set the flag to the all caps title
                 flag = row[0]
                 # reset the row count
                 rowcount = 0
                 # reset the space row count
                 spacerowcount = 0
-            # if the row contains the END line
-            if row[0] == 'END':
-                # end the read loop
-                break
-            if flag == 'CATEGORIES' and rowcount > 0:
-                categories.append(row[0])
-            if flag == 'ORDER' and rowcount > 0:
-                order.append(row[0])
             # adds the type of transaction and the keyword to the keyword object.  This is a type list with type
             # string inside
             if flag == 'KEYWORDS' and rowcount > 0:
@@ -80,10 +70,10 @@ def read_config(filepath):
                 # set the spacerowcount to zero since we read good data
                 spacerowcount = 0
 
-    return categories, order, keywords, spacerowcount
+    return keywords, spacerowcount
 
 
-def read_data(filepath, categories, keywords):
+def read_data(filepath, keywords):
     """
     This function reads the data csv file that has all the transactions in it.  It must be of the form:
     MM/DD/YYYY, transaction title, withdrawals, deposits
@@ -93,71 +83,41 @@ def read_data(filepath, categories, keywords):
 
     """
 
-    # open file to be read
-    with open(filepath, 'r+') as read_file:
-        # assign the file to be read to an object
-        reader = csv.reader(read_file)
-        rowcount = 0
-
+    with open(filepath, 'r+') as read_file:      # open file to be read
+        reader = csv.reader(read_file)      # assign the file to be read to an object
         data = []
         new_keywords = []
-        # for each row in the read file
-        for row in reader:
-            # if the row is blank, skip that iteration of the for loop
-            if len(row) == 0:
-
+        for row in reader:      # for each row in the read file
+            if len(row) == 0:       # if the row is blank, skip that iteration of the for loop
                 continue
-            # get rid of any whitespace in rows
-            for x in range(0, len(row)):
-                row[x] = row[x].strip()
-            # set a flag to trigger if a match is found so it stops iterating
-            flag = 0
-            # for each keyword pair found in the config file
-            for x in range(0, len(keywords)):
-                # if the words in the keyword pair match the word in the read file
-                # the and flag==0 makes sure that it stops looking for a match right after it finds one
-                if keywords[x][1].casefold() == row[1].casefold() and flag == 0:
-                    # add the category into a new column on the data file
-                    row.append(keywords[x][0])
-                    # add this new row with the new column to a variable called data
-                    data.append(row)
-                    # set the flag to one to say that we found a match
-                    flag = 1
-            # if there was no match
-            if flag == 0:
-                # ask the user what the transaction was that it didn't recognize
-                # add a negative to the value for user to see
-                if row[3] == '':
-                    # add a negative to the value
-                    row[2] = '-' + str(row[2])
-                row.remove('')
-                print('UNKNOWN TRANSACTION: ' + row[1] + ' ' + row[2])
-                new = input('Please enter a category for this transaction: ')
-                # remove white spaces from new input
-                new = new.strip()
-                if new == "skip":
-                    continue
-                # add this new column onto the row
-                row.append(new)
-                # add this new row with the new column onto the data
-                data.append(row)
-                # add the new keyword and category together
-                y = [new, row[1]]
-                # add this new pair into the temporary keywords object
-                keywords.append(y)
-                # add this new pair into the new keywords object so that it can get permanently written into the config
-                # file
-                new_keywords.append(y)
 
-    # for each line of data
-    for x in range(0, len(data)):
-        # if there is blank space in the deposit column
-        if data[x][3] == '':
-            # add a negative to the value
-            data[x][2] = '-' + str(data[x][2])
-        # remove the blank value whether it is in the withdrawal or deposit section to make the data uniform
-        if len(data) > 0:
-            data[x].remove('')
+            for x in range(0, len(row)):        # get rid of any whitespace in rows
+                row[x] = row[x].strip()
+
+            if row[3] == '':        # if the row is a withdrawal
+                row[2] = '-' + str(row[2])      # add a negative to the value
+            row.remove('')      # remove empty column (withdrawal or deposit)
+
+            flag = 0         # set a flag to trigger if a match is found so it stops iterating
+            for x in range(0, len(keywords)):       # for each keyword pair found in the config file
+
+                if keywords[x][1].casefold() == row[1].casefold() and flag == 0:    # if a keyword match is found
+                    row.append(keywords[x][0])      # add the category into a new column on the data file
+                    data.append(row)        # add this new row with the new column to a variable called data
+                    flag = 1        # set the flag to one to say that we found a match
+
+            if flag == 0:       # if there was no match
+                # ask the user what the transaction was that it didn't recognize
+                print('UNKNOWN TRANSACTION: ' + row[0] + ' ' + row[1] + ' ' + row[2])
+                new = input('Please enter a category for this transaction: ')
+                new = new.strip()       # remove white spaces from new input
+                if new == "skip":       # if user entered skip don't add it to the keyword list
+                    continue
+                row.append(new)         # add this new column onto the row
+                data.append(row)        # add this new row with the new column onto the data
+                y = [new, row[1]]       # add the new keyword and category together
+                keywords.append(y)      # add this new pair into the keywords object so it gets added to search loop
+                new_keywords.append(y)  # add this new pair into the new keywords object to get written to config
 
     return data, new_keywords
 
@@ -184,7 +144,7 @@ def write_data(filepath, data):
         # for each row in the data that we previously obtained in reverse order
         for row in data:
             # write a row to the new file in the order: transaction name, date, value, category
-            writer.writerow([row[1], row[0], row[2], row[4]])
+            writer.writerow([row[0], row[1], row[2], row[4]])
 
 
 def learn_keywords(filepath, new_keywords):
@@ -194,28 +154,48 @@ def learn_keywords(filepath, new_keywords):
     :param new_keywords:
     :return:
     """
-    # open the config file in appending mode so you can only write to the end of it and not disrupt the previous data
-    with open(filepath, 'a') as append_file:
-        # assign the file to be appended to as an object
-        appender = csv.writer(append_file, lineterminator = '\n')
-        appender.writerow('')
-        # for each new keyword pair that was input by the user
-        for x in range(0, len(new_keywords)):
-            # write this pair into the config file
-            appender.writerow(new_keywords[x])
+    with open(filepath, 'a') as append_file:        # open the config file in appending mode
+        for x in range(0, len(new_keywords)):       # for each new keyword
+            append_file.write(new_keywords[x][0] + ',' + new_keywords[x][1] + '\n')     # write new keyword to config
 
-#define config file location and read it to obtain parameters used for sorting transaction data
+def write_to_master(filepath, data):
+    """
+    takes the data with the category added on and appends it to the master file.  Will check master file to ensure
+    that it doesn't write a transaction more than once
+    :param filepath:
+    :param data:
+    :return:
+    """
+
+    with open(filepath, 'r+') as read_file:
+        reader = csv.reader(read_file)
+        most_recent_date = '00/00/0000'
+        for row in reader:
+            if len(row) == 0:
+                continue
+            wflag = 0
+            for x in range(0, len(row)):
+                if row[x].isspace():
+                    wflag = 1
+            if wflag == 1:
+                continue
+            datesplit = row[0].split('/')
+            date_value = int(datesplit[2])*1000 + int(datesplit[1]) * 100 + int(datesplit[0])
+            print(datesplit)
+            print(date_value)
+
+# define config file location and read it to obtain parameters used for sorting transaction data
 CONFIG_FILEPATH = r'C:\Users\bwcon\Documents\PyCharm Projects\Easy Budget\easy_budget_config.csv'
-categories, order, keywords, spacerowcount = read_config(CONFIG_FILEPATH)
+keywords, spacerowcount = read_config(CONFIG_FILEPATH)
 
 DATA_FILEPATH = r'C:\Users\bwcon\Documents\PyCharm Projects\Easy Budget\accountactivity.csv'
-data, new_keywords = read_data(DATA_FILEPATH, categories, keywords)
+data, new_keywords = read_data(DATA_FILEPATH, keywords)
 
-WRITE_FILEPATH = r'C:\Users\bwcon\Documents\PyCharm Projects\Easy Budget\Data'
-write_data(WRITE_FILEPATH, data)
+# WRITE_FILEPATH = r'C:\Users\bwcon\Documents\PyCharm Projects\Easy Budget\Data'
+# write_data(WRITE_FILEPATH, data)
 
+MASTER_FILEPATH = r'C:\Users\bwcon\Documents\PyCharm Projects\Easy Budget\Master\master.csv'
 learn_keywords(CONFIG_FILEPATH, new_keywords)
-
-
+write_to_master(MASTER_FILEPATH, data)
 
 print('done')
