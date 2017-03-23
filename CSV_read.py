@@ -35,7 +35,6 @@ def read_config(filepath):
                 # it is just there to count how many spaces there are after the data is read
                 spacerowcount += 1
                 continue
-
             # get rid of any empty whitespace rows
             # set whitespace flag so we can escape for iteration when whitespace is detected
             wflag = 0
@@ -53,7 +52,6 @@ def read_config(filepath):
                 continue
             # if the row contains information increment the row count
             rowcount += 1
-            # get rid of any whitespace in rows
             # for each item in the row list
             for x in range(0, len(row)):
                 # remove the whitespace before and after any text
