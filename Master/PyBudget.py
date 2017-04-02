@@ -246,8 +246,7 @@ def write_to_master(master_filepath, data, sheet_name):
                 rows_data.append(cell.value)
             rows_data[2] = round(rows_data[2], 2)
             rows_data[3] = round(rows_data[3], 2)
-            print(row)
-            print(rows_data)
+
             if row == rows_data:
                 same_flag = 1
         if same_flag == 0:
@@ -270,16 +269,16 @@ def write_to_master(master_filepath, data, sheet_name):
 CONFIG_FILEPATH = r'C:\Users\bwcon\Documents\PyCharm Projects\Easy Budget\Master\PyBudget_config.csv'
 keywords, spacerowcount = read_config(CONFIG_FILEPATH)
 
-DATA_FILEPATH = r'C:\Users\bwcon\Documents\PyCharm Projects\Easy Budget\Master\Jan2017_Credit.csv'
+DATA_FILEPATH = r'C:\Users\bwcon\Documents\PyCharm Projects\Easy Budget\Master\Jan2017_Mar2017_Debit.csv'
 data, new_keywords = read_data(DATA_FILEPATH, keywords)
 
 # WRITE_FILEPATH = r'C:\Users\bwcon\Documents\PyCharm Projects\Easy Budget\Data'
 # write_data(WRITE_FILEPATH, data)
 
-sheet_name = input("Please enter Debit or Credit transactions?: ")
-
+sheet_name = input("Please enter debit or credit transactions?: ")
+sheet_name = sheet_name.lower()
 MASTER_FILEPATH = r'C:\Users\bwcon\Documents\PyCharm Projects\Easy Budget\Master\PyBudget_data.xlsx'
-learn_keywords(CONFIG_FILEPATH, new_keywords)
 write_to_master(MASTER_FILEPATH, data, sheet_name)
 
+learn_keywords(CONFIG_FILEPATH, new_keywords)
 print('done')
